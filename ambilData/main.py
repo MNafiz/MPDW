@@ -30,9 +30,11 @@ list_hargaIDR = []
 list_waktu = []
 banyakData = 0
 
-for tahun in range(2014, 2023):
+for tahun in range(2014, 2024):
     print(tahun)
     for bulanidx in range(12):
+        if tahun == 2023 and bulanidx == 8:
+            break
         bulan = list_bulan[bulanidx]
         r = requests.get(f"https://harga-emas.org/history-harga/{tahun}/{bulan}/15")
         dapet = re.findall('<td>([0-9.]+)</td>', r.text)
