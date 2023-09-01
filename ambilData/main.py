@@ -41,7 +41,7 @@ for tahun in range(2014, 2024):
         r.close()
         hargaIDR = int(dapet[4].replace(".",""))
         list_hargaIDR.append(hargaIDR)
-        list_waktu.append(f"{tahun}-{str(bulanidx).zfill(2)}-15")
+        list_waktu.append(f"{tahun}-{str(bulanidx+1).zfill(2)}-15")
         start_date += delta
 
 
