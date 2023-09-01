@@ -29,21 +29,18 @@ list_bulan = [
 list_hargaIDR = []
 list_waktu = []
 banyakData = 0
-while (start_date <= end_date):
-	# tahun, bulan, tanggal = start_date
-    banyakData += 1
-    print(banyakData)
-    waktu = str(start_date)
-    tahun, bulan, tanggal = waktu.split("-")
-    tahun, bulan, tanggal = int(tahun), int(bulan), int(tanggal)
-    bulan = list_bulan[bulan-1]
-    r = requests.get(f"https://harga-emas.org/history-harga/{tahun}/{bulan}/{tanggal}/")
-    dapet = re.findall('<td>([0-9.]+)</td>', r.text)
-    r.close()
-    hargaIDR = int(dapet[4].replace(".",""))
-    list_hargaIDR.append(hargaIDR)
-    list_waktu.append(waktu)
-    start_date += delta
+
+for tahun in range(2014, 2023):
+    print(tahun)
+    for bulanidx in range(12):
+        bulan = list_bulan[bulanidx]
+        r = requests.get(f"https://harga-emas.org/history-harga/{tahun}/{bulan}/15")
+        dapet = re.findall('<td>([0-9.]+)</td>', r.text)
+        r.close()
+        hargaIDR = int(dapet[4].replace(".",""))
+        list_hargaIDR.append(hargaIDR)
+        list_waktu.append(f"{tahun}-{str(bulanidx).zfill(2)}-15")
+        start_date += delta
 
 
 df = pd.DataFrame({
