@@ -1,0 +1,162 @@
+---
+title: "Tugas 1 MPDW"
+author: "Muhammad Nafiz"
+date: "2023-09-04"
+output: html_document
+---
+
+```{r}
+install.packages("forecast")
+install.packages("TTR")
+install.packages("TSA")
+```
+
+```{r}
+library("forecast")
+library("TTR")
+library("TSA")
+```
+
+## Read data
+```{r}
+data <- read.csv("https://raw.githubusercontent.com/MNafiz/MPDW/main/ambilData/hasilScrap.csv",header = T)
+data
+```
+
+```{r}
+# install.packages("lubridate")
+library(lubridate)
+```
+
+```{r}
+# decimal_date(ymd("2014-01-15"))
+mts = ts(data$Harga,start = c(2014,1), frequency = 12)
+mts
+```
+
+```{r}
+summary(mts)
+```
+
+## Plot data deret waktu
+```{r}
+ts.plot(mts, xlab="Time Period ", ylab="Harga Emas/KG", 
+        main = "Time Series Plot", col="darkgreen")
+points(mts)
+```
+
+## splitting data 70% train dan 30% test
+```{r}
+n = length(mts)
+propTrain = 0.7
+trainNum = 80
+training <- data[1:80,]
+testing <- data[trainNum+1:n,]
+training_ts <- ts(training$Harga)
+testing_ts <- ts(testing$Harga)
+```
+
+## Eksplorasi Data
+## didapatkan data cenderung tidak memiliki pola musiman dan trend nya cenderung naik, akan tetapi pola trend cenderung tidak beraturan atau ada yang naik drastis dan ada yang biasa saja
+```{r}
+#eksplorasi keseluruhan data
+plot(mts, col="red",main="Plot semua data")
+points(mts)
+
+#eksplorasi data latih
+plot(training_ts, col="blue",main="Plot data latih")
+points(training_ts)
+
+#eksplorasi data uji
+plot(testing_ts, col="blue",main="Plot data uji")
+points(testing_ts)
+```
+
+## fungsi kalkulasi nilai SSE, MSE, dan MAPE
+```{r}
+akurasiFunc <- function(actual, predictions){
+  error <- actual - predictions
+  SSE <- sum(error^2)
+  MSE <- mean(error^2)
+  MAPE <- mean(abs(error)*100/actual)
+  
+  akurasi <- matrix(c(SSE, MSE, MAPE))
+  row.names(akurasi) <- c("SSE", "MSE", "MAPE")
+  colnames(akurasi) <- c("Akurasi")
+  return(akurasi)
+}
+```
+
+## Menggunakan Double Moving Average karena ada trend naik
+```{r}
+data.sma <- SMA(training_ts,n=4)
+dma <- SMA(data.sma, n = 4)
+At <- 2*data.sma - dma
+Bt <- 2/(4-1)*(data.sma - dma)
+data.dma<- At+Bt
+data.ramal2<- c(NA, data.dma)
+
+num <- n-trainNum
+t = 1:(num)
+f = c()
+
+for (i in t) {
+  f[i] = At[length(At)] + Bt[length(Bt)]*(i)
+}
+
+data.gab2 <- cbind(aktual = c(training_ts,rep(NA,num)), pemulusan1 = c(data.sma,rep(NA,num)),pemulusan2 = c(data.dma, rep(NA,num)),At = c(At, rep(NA,num)), Bt = c(Bt,rep(NA,num)),ramalan = c(data.ramal2, f[-1]))
+data.gab2
+```
+
+## plot pada DMA menunjukkan bahwa DMA hanya bagus saat memprediksi data latih sedangkan buruk dalam memprediksi data uji dengan hasil prediksi yang terus menaik
+```{r}
+data_ts = ts(data$Harga)
+ts.plot(data_ts, xlab="Time Period ", ylab="Sales", main= "DMA N=4 Data Sales")
+points(data_ts)
+lines(data.gab2[,3],col="green",lwd=2)
+lines(data.gab2[,6],col="red",lwd=2)
+legend("topleft",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","green","red"), cex=0.8)
+```
+
+## SSE, MSE. dan MAPE pada data latih dengan DMA
+## didapatkan nilai MAPE yang sangat kecil yang berarti baik dengan nilai sekitar 3 %
+```{r}
+akurasiFunc(data.gab2[,1][8:num],data.gab2[,6][8:num])
+```
+## SSE, MSE. dan MAPE pada data uji dengan DMA
+## nilai MAPE pada data UJI 39 % dan berbeda jauh dengan nilai MAPE data uji sehingga model dapat dikatakan kurang baik
+```{r}
+akurasiFunc(testing_ts[1:36], data.gab2[,6][(num+1):116])
+```
+
+## Pemodelan Double Exponential Smoothing
+```{r}
+des.opt <- HoltWinters(training_ts, gamma = FALSE, beta = NULL, alpha = NULL)
+plot(des.opt)
+```
+
+## Melakukan peramalan
+```{r}
+ramalan_des_opt <- forecast(des.opt,h = 36)
+des.opt$fitted[,1]
+```
+
+## SSE, MSE. dan MAPE pada data latih dengan DES
+## didapatkan nilai MAPE sebesar 3 % pada data latih
+```{r}
+akurasiFunc(training_ts[3:80],des.opt$fitted[,1])
+```
+
+## SSE, MSE. dan MAPE pada data latih dengan DES
+## didapatkan nilai MAPE sebesar 55 % pada data uji dan berbeda jauh dengan data latih sehingga model DES juga kurang baik
+```{r}
+akurasiFunc(testing_ts[1:36],ramalan_des_opt$mean)
+```
+
+## HoltWinter tidak dapat digunakan karena tidak terdeteksi adanya pola musiman
+
+```{r}
+winter1.opt<- HoltWinters(training_ts, alpha= NULL,  beta = NULL, gamma = NULL, seasonal = "multiplicative")
+```
+## Kesimpulan sementara
+## Model DMA lebih baik dibandingkan dengan Model DES akan tetapi nilai MAPE pada data uji masih berbeda jauh dengan nilai MAPE pada data latih sehingga kedua model tersebut belum cukup baik untuk data terkait (harga emas)
