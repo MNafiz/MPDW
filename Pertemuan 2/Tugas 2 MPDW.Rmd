@@ -28,7 +28,7 @@ library(HoRM) #untuk membuat model regresi Hildreth-Lu
 
 ## input data mengenai total CO2 emissions di indonesia dari tahun 1889 sampai 2014 (ada 126 observasi)
 ```{r}
-df <- read.csv("dataPertemuan2.csv")
+df <- read.csv("https://raw.githubusercontent.com/MNafiz/MPDW/main/Pertemuan%202/dataPertemuan2.csv")
 df
 ```
 
@@ -168,11 +168,11 @@ Setalah mengetahui adanya hubungan antar dua peubah, maka model regresi dapat di
 ## Regresi
 
 
-## Persamaan regresi yang dihasilkan adalah Total = 630,28 * sqrt(Solid.Fuel) -3967,59 dan memiliki nilai R-squared yang baik yaitu 92 % dan nilai fhitung yang besar sehingga peubah sqrt(Solid.Fuel) berpengaruh secara signifikan.
+## Persamaan regresi yang dihasilkan adalah Total = 278,3 * sqrt(Solid.Fuel) - 10,84 * Year + 1.36 * Liquid.Fuel + 1559 dan memiliki nilai R-squared yang baik yaitu sekitar 99 % dan nilai fhitung yang besar. Akan tetapi ada 1 peubah yang tidak signifikan yaitu peubah tahun.
 ```{r}
 #Pembuatan Model Regresi
-#model regresi
-model<- lm(df$Total~sqrt(df$Solid.Fuel))
+#model regresi linear berganda
+model<- lm(df$Total~sqrt(df$Solid.Fuel)+df$Year+df$Liquid.Fuel)
 summary(model)
 ```
 
@@ -193,13 +193,12 @@ lines(seq(1,length(sisaan),1), sisaan, col = "red")
 abline(a = 0, b = 0, lwd = 2)
 ```
 
-## sisaan tidak menyebar normal menurut kolmogorov-smirnov dengan alfa 5%
+## sisaan menyebar normal menurut kolmogorov-smirnov dengan alfa 5%
 
 ```{r}
 #Melihat Sisaan Menyebar Normal/Tidak
 #H0: sisaan mengikuti sebaran normal
 #H1: sisaan tidak mengikuti sebaran normal
-shapiro.test(sisaan)
 ks.test(sisaan, "pnorm", mean=mean(sisaan), sd=sd(sisaan))
 ```
 ## pada plot pacf, lag ke 2 signifikan sehingga ada indikasi autokorelasi
