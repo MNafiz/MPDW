@@ -1,0 +1,184 @@
+---
+title: "Pertemuan 5"
+author: "Muhammad Nafiz"
+date: "2023-09-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Import package yang dibutuhkan
+
+```{r}
+library(ggplot2)
+library(tsibble)
+library(tseries)
+library(MASS)
+```
+
+
+### input data menjadi dataframe R
+```{r}
+data <- read.csv("https://raw.githubusercontent.com/MNafiz/MPDW/main/ambilData/hasilScrap.csv",header = T)
+data
+```
+### Data Penuh
+### Ubah ke bentuk data time series
+```{r}
+# decimal_date(ymd("2014-01-15"))
+mts = ts(data$Harga,start = c(2014,1), frequency = 12)
+mts
+```
+### Ringkasan dari data time series
+```{r}
+summary(mts)
+```
+
+### Plot data deret waktu
+### Berasarkan plot deret waktu, data harga emas cenderung tidak stasioner dalam rataan dan ragam
+### Hal ini dapat dilihat saat memasukki tahun 2020 dimana harga melonjak drastis dan fluktuaktifnya cenderung memiliki ragam yang lebih besar
+```{r}
+ts.plot(mts, xlab="Time Period ", ylab="Harga Emas/KG", 
+        main = "Time Series Plot", col="darkgreen")
+points(mts)
+```
+
+
+### Plot ACF
+### Berdasarkan plot acf, acf yang dihasilkan cenderung slowly tail off
+```{r}
+acf(mts)
+```
+```{r}
+tseries::adf.test(mts)
+```
+$H_0$ : Data tidak stasioner dalam rataan
+
+$H_1$ : Data stasioner dalam rataan
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.5102 yang lebih besar dari taraf nyata 5% sehingga tak tolak $H_0$ dan menandakan bahwa data tidak stasioner dalam rataan. Hal ini sesuai dengan hasil eksplorasi menggunakan plot time series dan plot ACF.
+
+
+
+
+### Plot Box-Cox
+```{r}
+index <- seq(1:length(mts))
+bc = boxcox(mts~index, lambda = seq(-4,4,by=0.01))
+#Nilai Rounded Lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+#SK
+bc$x[bc$y > max(bc$y) - 1/2 * qchisq(.95,1)]
+```
+Gambar di atas menunjukkan nilai *rounded value* ($\lambda$) optimum sebesar **-1,96** dan pada selang kepercayaan 95% nilai memiliki batas bawah **-2,52** dan batas atas **-1,40**. Selang tersebut tidak memuat nilai satu sehingga dapat dikatakan bahwa data tidak stasioner dalam ragam.
+
+
+
+
+### Partisi Data
+
+#### Bagian 1
+
+```{r}
+dt_stas1 <- mts[1:38] |> ts(start = c(2014,1), frequency = 12)
+mean(dt_stas1)
+var(dt_stas1)
+```
+### Plot data deret waktu
+```{r}
+ts.plot(dt_stas1, xlab="Time Period ", ylab="Harga Emas/KG", 
+        main = "Time Series Plot", col="darkgreen")
+points(dt_stas1)
+```
+
+Plot deret waktu di atas menunjukkan bahwa data cenderung tidak stasioner dalam rataan, ditandai dengan data yang cenderung memiliki trend naik dan cenderung tidak stasioner dalam ragam, ditandai dengan lebar pita yang cenderung tidak sama.
+
+### Plot ACF
+### Berdasarkan plot acf, acf hanya signifikan sampai lag ke-4
+```{r}
+acf(dt_stas1)
+```
+
+
+
+### Uji ADF
+
+```{r}
+tseries::adf.test(dt_stas1)
+```
+
+$H_0$ : Data tidak stasioner dalam rataan
+
+$H_1$ : Data stasioner dalam rataan
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.2531 yang lebih besar dari taraf nyata 5% sehingga tak tolak $H_0$ dan menandakan bahwa data tidak stasioner dalam rataan. Hal ini sesuai dengan hasil eksplorasi menggunakan plot time series dan plot ACF.
+
+### Plot Boxcox
+
+```{r}
+index <- seq(1:38)
+bc = boxcox(dt_stas1~index, lambda = seq(-20,6,by=1))
+#Nilai Rounded Lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+#SK
+bc$x[bc$y > max(bc$y) - 1/2 * qchisq(.95,1)]
+```
+
+Gambar di atas menunjukkan nilai *rounded value* ($\lambda$) optimum sebesar **-5,555556** dan pada selang kepercayaan 95% nilai memiliki batas bawah **-11.0707071** dan batas atas **-0.3030303**. Selang tersebut tidak memuat nilai satu sehingga dapat dikatakan bahwa data harga emas partisi 1 tidak stasioner dalam ragam.
+
+### Bagian 2
+### Data partisi 2
+```{r}
+dt_stas2 <- mts[1:77] |> ts(start = c(2014,1), frequency = 12)
+mean(dt_stas2)
+var(dt_stas2)
+```
+
+### Plot data deret waktu
+```{r}
+ts.plot(dt_stas2, xlab="Time Period ", ylab="Harga Emas/KG", 
+        main = "Time Series Plot", col="darkgreen")
+points(dt_stas2)
+```
+
+Plot deret waktu di atas menunjukkan bahwa data cenderung tidak stasioner dalam rataan, ditandai dengan data yang tiba tiba meningkat drastis memasuki tahun 2020 dan cenderung tidak stasioner dalam ragam, ditandai dengan lebar pita yang cenderung tidak sama.
+
+#### Plot ACF
+
+```{r}
+acf(dt_stas2)
+```
+
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cenderung *tails off* 
+
+#### Uji ADF
+
+```{r}
+adf.test(dt_stas2)
+```
+
+$H_0$ : Data tidak stasioner dalam rataan
+
+$H_1$ : Data stasioner dalam rataan
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.99 yang lebih besar dari taraf nyata 5% sehingga tak tolak $H_0$ dan menandakan bahwa data tidak stasioner dalam rataan. Hal ini sesuai dengan hasil eksplorasi menggunakan plot time series dan plot ACF.
+
+#### Plot Boxcox
+
+```{r}
+index <- seq(1:77)
+bc = boxcox(dt_stas2~index, lambda = seq(-10,6,by=1))
+#Nilai Rounded Lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+#SK
+bc$x[bc$y > max(bc$y) - 1/2 * qchisq(.95,1)]
+```
+
+Gambar di atas menunjukkan nilai *rounded value* ($\lambda$) optimum sebesar **-3.535354** dan pada selang kepercayaan 95% nilai memiliki batas bawah **-4.505051** dan batas atas **-2.727273**. Selang tersebut tidak memuat nilai satu sehingga dapat dikatakan bahwa data harga emas partisi 2 tidak stasioner dalam ragam.
+
+
